@@ -10,6 +10,7 @@ class GithubWorker:
 		self.tmp_directory = '/tmp/'
 		self.repository_name = 'local_git'
 
+		self.subprocess_path = self.tmp_directory
 		self.GITHUB = GITHUB
 
 		# --git-dir=/path/to/my/directory/.git/ --work-tree=/path/to/my/directory/
@@ -36,6 +37,7 @@ class GithubWorker:
 
 
 	def execute(self, command):
+		print(command)
 		'''
 			Execute a command
 		'''

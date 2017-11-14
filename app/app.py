@@ -21,9 +21,9 @@ Config = configparser.ConfigParser()
 Config.read("config.ini")
 
 GITHUB = {}
-GITHUB['username'] = Config.get('username', 'repo_url')
-GITHUB['password'] = Config.get('password', 'repo_url')
-GITHUB['REPO_URL'] = Config.get('repo_url', 'repo_url')
+GITHUB['username'] = Config.get('github', 'username')
+GITHUB['password'] = Config.get('github', 'password')
+GITHUB['REPO_URL'] = Config.get('github', 'repo_url')
 
 
 # Github settings
