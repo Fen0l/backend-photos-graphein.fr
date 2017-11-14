@@ -11,7 +11,24 @@ from PIL import Image
 
 from GithubManager import GithubWorker
 
+import configparser, io
+
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+# ready config file
+Config = configparser.ConfigParser()
+Config.read("config.ini")
+
+GITHUB = {}
+GITHUB['username'] = Config.get('username', 'repo_url')
+GITHUB['password'] = Config.get('password', 'repo_url')
+GITHUB['REPO_URL'] = Config.get('repo_url', 'repo_url')
+
+
+# Github settings
+gw = GithubWorker(GITHUB)
+local_folders = gw.get_folders()
 
 
 # Flask settings
@@ -19,8 +36,7 @@ app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['ALLOWED_EXTENSIONS'] = set(['png', 'jpg', 'jpeg'])
 app.jinja_env.cache = {}
-app.config['WORKING_GIT_DIRECTORY'] = os.getcwd() + '/tmp/'
-
+app.config['WORKING_GIT_DIRECTORY'] = gw.get_local_path()
 
 # jinja2 settings
 PATH = os.path.dirname(os.path.abspath(__file__))
@@ -37,13 +53,6 @@ handler.setFormatter(
     Formatter("[%(asctime)s] %(levelname)-8s %(message)s", "%Y-%m-%d %H:%M:%S")
 )
 app.logger.addHandler(handler)
-
-
-
-# Github settings
-gw = GithubWorker()
-local_folders = gw.get_folders()
-
 
 
 # def _check_img_filename(filename):
@@ -64,34 +73,30 @@ local_folders = gw.get_folders()
 
 #     return filename
 
-def _check_markdown_filename(filename):
-    print("CHECKING " + filename)
-    if(os.path.isfile(local_folders['markdown'] + filename)):
+def _check_local_file(filename, local_folder):
+    if(os.path.isfile(local_folder + filename)):
         current_filename, ext = filename.split(".")
 
         # Get occurative indice
-        # 2017-11-13-fontaine-1.markdown
+        # 2017-11-13-fontaine_1.markdown
+        # Check if there is a current occuration
+        if("_" in current_filename):
+            fname, occuration = current_filename.split("_")
+        else:
+            fname = current_filename
+            occuration = 0
 
 
-        occuration = filename_structure[0].split("-")
-        occuration = int(occuration[1]) if(len(occuration) > 1) else 0
-
-        filename = "{o_filename}-{number}.{ext}".format(
-            ext = filename_structure[-1], 
-            o_filename = filename_structure[0].split('-')[0], 
-            number = occuration + 1
+        filename = "{fname}{occuration_separator}{number}.{ext}".format(
+            ext = ext, 
+            fname = fname, 
+            occuration_separator = '_',
+            number = int(occuration) + 1
             )
 
-        return _check_markdown_filename(filename)
+        return _check_local_file(filename, local_folder)
 
     return filename
-
-
-
-#print("test " + _check_img_filename("test.jpg"))
-
-print("test " + _check_markdown_filename("2017-11-13-fontaine.markdown"))
-
 
 
 # Find the template
@@ -100,15 +105,20 @@ def _render_template(template_filename, context):
  
 # Render the empty template
 def _create_template(template_filename, template_renderer):
-    with open("tmp/" + template_filename, "w") as f:
+    filename = _check_local_file(template_filename, local_folders['markdown'])
+
+    updir = os.path.join(basedir, app.config['WORKING_GIT_DIRECTORY'] + '_posts/')
+    with open(updir + filename, "w") as f:
         f.write(template_renderer)
 
-def proceed_post(filename, dataForm):
+    return filename
+
+def proceed_post(photo_file, dataForm):
     current_datetime = datetime.datetime.now()
 
     datas = {
         'title_photo': dataForm['title-photo'].title(),
-        'img_local_name': filename,
+        'img_local_name': photo_file,
         'description_short': dataForm['desc-photo'].split('.')[0] + ".",
         'description_long': dataForm['desc-photo'],
         'date_post': current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -119,11 +129,10 @@ def proceed_post(filename, dataForm):
     # Create markdown file -> 2017-10-24-bordeaux-mirror.markdown 
     template_filename = current_datetime.strftime("%Y-%m-%d-") + datas['title_photo'].lower().replace(' ', '-') + ".markdown"
     template_renderer = _render_template('empty_template.markdown', datas)
-    _create_template(template_filename, template_renderer)
+    markdown_file = _create_template(template_filename, template_renderer)
 
     # commit_gh(["tmp/" + template_filename, "tmp/" + filename])
-
-    _init_local_repo()
+    gw.commit(photo_file, markdown_file)
 
 
 # Check if the file match with the settings
@@ -144,11 +153,11 @@ def upldfile():
             f.filename = f.filename.lower()
             if f and _allowed_file(f.filename):
                 filename = secure_filename(f.filename)
-                updir = os.path.join(basedir, app.config['WORKING_GIT_DIRECTORY'])
+                updir = os.path.join(basedir, app.config['WORKING_GIT_DIRECTORY'] + 'assets/img/')
                 print("UPDIR " + updir)
 
                 # CHeck if file exists and rename it if yes
-                filename = _check_img_filename(filename)
+                filename = _check_local_file(filename, local_folders['picture'])
 
                 f.save(os.path.join(updir, filename))
                 file_size = os.path.getsize(os.path.join(updir, filename))
@@ -162,3 +171,17 @@ def upldfile():
 
 if __name__ == '__main__':
     app.run(use_reloader=True, debug=True)
+
+    # Test check local files
+    # print("test " + _check_local_file("test.jpg", local_folders['picture']))
+    # print("test " + _check_markdown_filename("2017-11-13-fontaine.markdown", local_folders['markdown']))
+
+
+
+
+
+
+
+
+
+

@@ -3,52 +3,70 @@ import os, sys
 
 from subprocess import Popen, PIPE
 
-GITHUB['username'] = 'GitHub-photo-graphein'
-GITHUB['password'] = 'Af38ghrzzefez'
-
 class GithubWorker:
-	def __init__(self):
-		self.local_path = os.getcwd() + '/tmp/local_git/'
-		self.tmp_local_path = os.getcwd() + '/tmp/'
+	def __init__(self, GITHUB):
+		# Local path for the repository
+		self.local_git_path = "/tmp/local_git/"
+		self.tmp_directory = '/tmp/'
+		self.repository_name = 'local_git'
 
-		self.subprocess_path = self.tmp_local_path
+		self.GITHUB = GITHUB
+
+		# --git-dir=/path/to/my/directory/.git/ --work-tree=/path/to/my/directory/
+		# --git-dir=self.git_dir --work-tree=self.work_tree
+		git_dir = self.local_git_path + ".git/"
+		work_tree = self.local_git_path
+		self.git_dir_tree = "--git-dir={git_dir} --work-tree={work_tree}".format(git_dir = git_dir, work_tree = work_tree)
 
 		# Check if the repo is present localy
 		self._is_cloned()
 
 
 	def _is_cloned(self):
-		if not (os.path.isdir(self.local_path)):
+		if not (os.path.isdir(self.local_git_path)):
 			print("Creating the local directory for the repository")
-
-			self.execute("git clone https://{gh_username}:{gh_password}@github.com/GitHub-photo-graphein/Test-script.git {local_path}".
-				format(local_path = self.local_path, gh_username = GITHUB['username'], gh_password = GITHUB['password']))
+			self.execute('pwd')
+			self.execute("git clone https://{gh_username}:{gh_password}@{github_repo_url} {local_path}".
+				format(github_repo_url = self.GITHUB['REPO_URL'], local_path = self.local_git_path, gh_username = self.GITHUB['username'], gh_password = self.GITHUB['password']))
 
 		# git remote add origin https://github.com/GitHub-photo-graphein/Test-script.git
 		# if the repo is already present, change the subprocess path and update the repo
-		self.subprocess_path = self.local_path
-		self.execute("git checkout")
+		self.subprocess_path = self.local_git_path
+		self.execute("git {git_dir} fetch origin master".format(git_dir = self.git_dir_tree))
 
 
 	def execute(self, command):
 		'''
 			Execute a command
 		'''
-		p = Popen(command.split(" "), stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=self.subprocess_path)
-		p.wait()
-		output, err = p.communicate(b"input data that is passed to subprocess' stdin")
-		rc = p.returncode
+		cmd = command if isinstance(command, list) else command.split(" ")
+		p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=self.subprocess_path)
+		sStdout, sStdErr = p.communicate()
 
-		print(output, err, rc)
-
+		print("LOGGIN sStdout -> " + str(sStdout) + '\n')
+		print("LOGGIN sStdErr -> " + str(sStdErr) + '\n')
 
 
 	def get_folders(self):
 		'''
 			Return the current folder for markdowns and pictures files
 		'''
-		return {'markdown': self.local_path + "_posts/", 'picture': self.local_path + "assets/img/"}
+		return {'markdown': self.local_git_path + "_posts/", 'picture': self.local_git_path + "assets/img/"}
 
+	def get_local_path(self):
+		return self.local_git_path
+
+
+	def commit(self, photo_file, markdown_file):
+		self.execute("git {git_dir} fetch".format(git_dir = self.git_dir_tree))
+		self.execute('git {git_dir} add assets/img/{filename}'.format(git_dir = self.git_dir_tree, filename = photo_file))
+		self.execute('git {git_dir} add _posts/{filename}'.format(git_dir = self.git_dir_tree, filename = markdown_file))
+		self.execute("git {git_dir} commit -m 'Photo_upload_{filename}' --allow-empty".format(git_dir = self.git_dir_tree, filename = photo_file))
+		self.execute('git {git_dir} push origin master'.format(git_dir = self.git_dir_tree))
+
+		# subprocess.call(["git", "commit", "-m", "'{}'".format("commit message"), "--allow-empty"], shell=True)
+
+		return True
 
 
 # from github import Github

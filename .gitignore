@@ -7,10 +7,12 @@ __pycache__/
 
 # backend Project
 tmp/*
+config.ini
 
 
 # C extensions
 *.so
+.DS_Store
 
 # Distribution / packaging
 .Python
