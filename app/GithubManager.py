@@ -34,6 +34,7 @@ class GithubWorker:
 		# if the repo is already present, change the subprocess path and update the repo
 		self.subprocess_path = self.local_git_path
 		self.execute("git {git_dir} fetch origin master".format(git_dir = self.git_dir_tree))
+		self.execute("git {git_dir} pull origin master".format(git_dir = self.git_dir_tree))
 
 
 	def execute(self, command):
@@ -60,8 +61,9 @@ class GithubWorker:
 
 
 	def commit(self, photo_file, markdown_file):
-		self.execute("git {git_dir} fetch".format(git_dir = self.git_dir_tree))
-		self.execute('git {git_dir} add assets/img/{filename}'.format(git_dir = self.git_dir_tree, filename = photo_file))
+		self.execute("git {git_dir} fetch origin master".format(git_dir = self.git_dir_tree))
+		self.execute("git {git_dir} pull origin master".format(git_dir = self.git_dir_tree))
+		self.execute('git {git_dir} add assets/images/{filename}'.format(git_dir = self.git_dir_tree, filename = photo_file))
 		self.execute('git {git_dir} add _posts/{filename}'.format(git_dir = self.git_dir_tree, filename = markdown_file))
 		self.execute("git {git_dir} commit -m 'Photo_upload_{filename}' --allow-empty".format(git_dir = self.git_dir_tree, filename = photo_file))
 		self.execute('git {git_dir} push origin master'.format(git_dir = self.git_dir_tree))

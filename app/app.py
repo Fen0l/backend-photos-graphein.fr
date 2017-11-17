@@ -138,7 +138,7 @@ def proceed_post(photo_file, dataForm):
 # Check if the file match with the settings
 def _allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[-1] in app.config['ALLOWED_EXTENSIONS']
 
 # HTTP GET /
 @app.route('/', methods=['GET'])
@@ -153,7 +153,7 @@ def upldfile():
             f.filename = f.filename.lower()
             if f and _allowed_file(f.filename):
                 filename = secure_filename(f.filename)
-                updir = os.path.join(basedir, app.config['WORKING_GIT_DIRECTORY'] + 'assets/img/')
+                updir = os.path.join(basedir, app.config['WORKING_GIT_DIRECTORY'] + 'assets/images/')
                 print("UPDIR " + updir)
 
                 # CHeck if file exists and rename it if yes
@@ -170,7 +170,7 @@ def upldfile():
 
 
 if __name__ == '__main__':
-    app.run(use_reloader=True, debug=True)
+    app.run(host="0.0.0.0", use_reloader=True, debug=True)
 
     # Test check local files
     # print("test " + _check_local_file("test.jpg", local_folders['picture']))
