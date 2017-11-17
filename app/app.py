@@ -2,6 +2,8 @@ import time
 import requests, os, sys, datetime, base64
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, url_for
+from flask_basicauth import BasicAuth
+
 from jinja2 import Environment, FileSystemLoader
 from werkzeug import secure_filename
 
@@ -37,6 +39,14 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['ALLOWED_EXTENSIONS'] = set(['png', 'jpg', 'jpeg'])
 app.jinja_env.cache = {}
 app.config['WORKING_GIT_DIRECTORY'] = gw.get_local_path()
+
+
+# App security access
+app.config['BASIC_AUTH_USERNAME'] = Config.get('app', 'username')
+app.config['BASIC_AUTH_PASSWORD'] = Config.get('app', 'password')
+app.config['BASIC_AUTH_FORCE'] = True
+basic_auth = BasicAuth(app)
+
 
 # jinja2 settings
 PATH = os.path.dirname(os.path.abspath(__file__))
